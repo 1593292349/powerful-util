@@ -1,7 +1,15 @@
-import {defineConfig} from 'powerful-cli';
-import config from './exports/powerful.config';
+import {
+	defineConfig,
+} from 'powerful-cli';
+import config from 'powerful-cli/config/powerful.config';
 
-export default defineConfig<CONFIG.Extra>(async (
+type Extra = {
+	context:{
+		platform:'node' | 'umd' | undefined;
+	};
+};
+
+export default defineConfig<Extra>(async (
 	{
 		returnCheck,
 		baseDir,
@@ -17,6 +25,9 @@ export default defineConfig<CONFIG.Extra>(async (
 		},
 	},
 ) => {
+	const context:Extra['context'] = {
+		platform:args.platform as any,
+	};
 	return returnCheck({
 		extendConfigs:[
 			config,
@@ -24,13 +35,14 @@ export default defineConfig<CONFIG.Extra>(async (
 		envPath:'env',
 		extraEnv:{
 		},
-		extraProp:'v8',
+		context,
 	});
 }, async (
 	{
 		extendConfigs,
 		envPath,
 		extraEnv,
+		context,
 		returnCheck,
 		baseDir,
 		packageJson,
@@ -52,7 +64,7 @@ export default defineConfig<CONFIG.Extra>(async (
 		emitEntryInjectJs:{
 		},
 		pages:{
-			index:'src/main.ts',
+			index:'doc/main.ts',
 		},
 		htmlTemplate:{
 			favicon:'template/favicon.ico',
@@ -71,6 +83,7 @@ export default defineConfig<CONFIG.Extra>(async (
 				? 'lib/build-info.txt'
 				: 'build-info.txt',
 			content:[
+				`构建平台: ${context.platform}`,
 			],
 		},
 		emitFiles:{
@@ -105,14 +118,15 @@ export default defineConfig<CONFIG.Extra>(async (
 			},
 			buildConsole:'normal',
 			name:packageJson.name,
-			entry:'src/lib.ts',
+			entry:'src/index.ts',
 			minimize:'swc',
-			sourceMap:false,
+			sourceMap:context.platform === 'umd',
 			cssSourceMap:false,
 			sourceLog:true,
 			externals:{
 			},
-			export:'default',
+			export:undefined,
+			polyfillAll:true,
 		},
 		copy:{
 			dir:'static',
@@ -127,11 +141,24 @@ export default defineConfig<CONFIG.Extra>(async (
 				browserslistEnv:undefined,
 				debug:false,
 				useBuiltIns:'usage',
+				...(
+					context.platform === 'node'
+						? {
+							ignoreBrowserslistConfig:true,
+							targets:'node 14.21',
+						}
+						: {}
+				),
 			},
 			plugins:[
 			],
 			polyfills:[
 			],
+			extraPolyfills:context.platform === 'node'
+				? copyCover([
+				])
+				: [
+				],
 			transpileDependencies:[
 			],
 			extraEntry:[
@@ -161,11 +188,7 @@ export default defineConfig<CONFIG.Extra>(async (
 						{
 							copy:[
 								{
-									source:'./dist/assets',
-									destination:'./dist/lib/assets',
-								},
-								{
-									source:'./dist/{index.js,index.css}',
+									source:'./dist/{index.js,index.js.map}',
 									destination:'./dist/lib',
 								},
 							],
@@ -173,13 +196,13 @@ export default defineConfig<CONFIG.Extra>(async (
 						{
 							delete:[
 								{
-									source:'./dist/{index.js,index.css,assets}',
+									source:'./dist/{index.js,index.js.map}',
 									options:{
 										force:true,
 									},
 								},
 								{
-									source:'./lib/',
+									source:`./lib/${context.platform}`,
 									options:{
 										force:true,
 									},
@@ -190,7 +213,7 @@ export default defineConfig<CONFIG.Extra>(async (
 							copy:[
 								{
 									source:'./dist/lib',
-									destination:'./lib',
+									destination:`./lib/${context.platform}`,
 								},
 							],
 						},

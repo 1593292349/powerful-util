@@ -3,7 +3,10 @@ module.exports = (async () => {
 	return [
 		{
 			ignores:[
+				'node_modules/',
+				'dist/',
 				'lib/',
+				'static/',
 			],
 		},
 		...configs,
