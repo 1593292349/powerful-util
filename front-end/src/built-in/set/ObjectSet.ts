@@ -1,3 +1,6 @@
+/**
+ * 针对 IE 的优化
+ */
 export default class ObjectSet implements Set<string>{
 	private _cache:Record<string, null> = Object.create(null);
 	constructor(iterable?:Iterable<string>){
