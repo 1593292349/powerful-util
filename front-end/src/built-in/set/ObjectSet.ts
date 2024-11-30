@@ -1,5 +1,5 @@
 export default class ObjectSet implements Set<string>{
-	private _cache:Record<string, undefined> = Object.create(null);
+	private _cache:Record<string, null> = Object.create(null);
 	constructor(iterable?:Iterable<string>){
 		if(iterable){
 			const {
@@ -7,11 +7,11 @@ export default class ObjectSet implements Set<string>{
 			} = this;
 			if(Array.isArray(iterable)){
 				for(let i = 0; i < iterable.length; ++i){
-					_cache[iterable[i]] = undefined;
+					_cache[iterable[i]] = null;
 				}
 			}else{
 				for(const k of iterable){
-					_cache[k] = undefined;
+					_cache[k] = null;
 				}
 			}
 		}
@@ -22,7 +22,7 @@ export default class ObjectSet implements Set<string>{
 	}
 
 	add(key:string):this{
-		this._cache[key] = undefined;
+		this._cache[key] = null;
 		return this;
 	}
 
@@ -44,7 +44,9 @@ export default class ObjectSet implements Set<string>{
 		return Object.keys(this._cache).length;
 	}
 
-	readonly [Symbol.toStringTag] = 'ObjectSet';
+	get [Symbol.toStringTag](){
+		return 'ObjectSet';
+	}
 
 	[Symbol.iterator]():SetIterator<string>{
 		return this.values();
@@ -89,7 +91,10 @@ export default class ObjectSet implements Set<string>{
 
 	difference<U>(other:ReadonlySetLike<U>):Set<string>{
 		const result = new ObjectSet();
-		for(const key of this.values()){
+		//这里追求性能, 冗余代码
+		const keys = Object.keys(this._cache);
+		for(let i = 0; i < keys.length; ++i){
+			const key = keys[i];
 			if(!other.has(key as any)){
 				result.add(key);
 			}
@@ -106,7 +111,10 @@ export default class ObjectSet implements Set<string>{
 		if(this.size > other.size){
 			return false;
 		}else{
-			for(const key of this.values()){
+			//这里追求性能, 冗余代码
+			const keys = Object.keys(this._cache);
+			for(let i = 0; i < keys.length; ++i){
+				const key = keys[i];
 				if(!other.has(key)){
 					return false;
 				}
@@ -119,10 +127,23 @@ export default class ObjectSet implements Set<string>{
 		if(this.size < other.size){
 			return false;
 		}else{
-			const set = {[Symbol.iterator]:other.keys.bind(other)};
-			for(const key of set){
-				if(!this.has(key as any)){
-					return false;
+			if(other instanceof ObjectSet){
+				//这里追求性能, 冗余代码
+				const keys = Object.keys(other._cache);
+				for(let i = 0; i < keys.length; ++i){
+					const key = keys[i];
+					if(!this.has(key as any)){
+						return false;
+					}
+				}
+			}else{
+				const iterator = other.keys();
+				let result = iterator.next();
+				while(!result.done){
+					if(!this.has(result.value as any)){
+						return false;
+					}
+					result = iterator.next();
 				}
 			}
 			return true;
@@ -131,16 +152,32 @@ export default class ObjectSet implements Set<string>{
 
 	isDisjointFrom(other:ReadonlySetLike<unknown>):boolean{
 		if(this.size <= other.size){
-			for(const key of this.values()){
+			//这里追求性能, 冗余代码
+			const keys = Object.keys(this._cache);
+			for(let i = 0; i < keys.length; ++i){
+				const key = keys[i];
 				if(other.has(key)){
 					return false;
 				}
 			}
 		}else{
-			const set = {[Symbol.iterator]:other.keys.bind(other)};
-			for(const key of set){
-				if(this.has(key as any)){
-					return false;
+			if(other instanceof ObjectSet){
+				//这里追求性能, 冗余代码
+				const keys = Object.keys(other._cache);
+				for(let i = 0; i < keys.length; ++i){
+					const key = keys[i];
+					if(this.has(key)){
+						return false;
+					}
+				}
+			}else{
+				const iterator = other.keys();
+				let result = iterator.next();
+				while(!result.done){
+					if(this.has(result.value as any)){
+						return false;
+					}
+					result = iterator.next();
 				}
 			}
 		}
