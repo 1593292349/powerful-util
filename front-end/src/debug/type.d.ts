@@ -3,7 +3,7 @@ type PerfMarkType = 'performance' | 'console' | 'callback';
 type Measure<T extends PerfMarkType>
 	= T extends 'callback'
 		? (callback:(duration:number) => void) => MeasureStop
-		: (nameOrGetter:string | ((...args:any[]) => string)) => MeasureStop;
+		: (nameOrGetter:string | (() => string)) => MeasureStop;
 type MeasureStop = () => void;
 type MeasureMapper = {
 	[key in PerfMarkType]:Measure<key>;
